@@ -99,8 +99,8 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned; .\install.ps1
 1. **URL вашего сайта** — например `https://myflowers.ru`
 2. **ID проекта Tilda** — откройте [tilda.cc/projects](https://tilda.cc/projects/),
    скопируйте число из URL проекта (например `1844654`)
-3. **API-ключи Tilda** — откройте [tilda.cc/en/profile/keys](https://tilda.cc/en/profile/keys/),
-   создайте ключи если их нет, скопируйте Public и Secret key
+3. **API-ключи Tilda** — в личном кабинете: Настройки сайта → Экспорт → API интеграции,
+   скопируйте Public и Secret key
 4. **Вход в Tilda** — откроется браузер, войдите в аккаунт, окно закроется само
 
 Браузер Chromium скачается автоматически на этом шаге (~150 МБ, один раз).

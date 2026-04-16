@@ -73,7 +73,7 @@ def run_config_wizard() -> Config:
 
     # Шаг 3 — с проверкой API-ключей
     print("\nШаг 3/4: API-ключи Tilda")
-    print("  Откройте: https://tilda.cc/en/profile/keys/")
+    print("  В личном кабинете Tilda: Настройки сайта → Экспорт → API интеграции")
     while True:
         public_key = input("  Public key > ").strip()
         secret_key = input("  Secret key > ").strip()
