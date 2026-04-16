@@ -163,11 +163,11 @@ def _check_page(cfg, page, page_info) -> dict:
     """Проверяет страницу и возвращает dict с результатом."""
     alias = "/" + page_info.get("alias", "").strip("/")
 
-    static_url = browser.find_lcp_image(page, cfg.site_url, alias)
-    if not static_url:
+    lcp_url = browser.find_lcp_image(page, cfg.site_url, alias)
+    if not lcp_url:
         return {"status": "no_image", "alias": alias}
 
-    optim_url = fixes.build_optim_url(static_url)
+    optim_url = fixes.build_optim_url(lcp_url)
     browser.open_head_editor(page, cfg.project_id, str(page_info["id"]))
     current_code = browser.read_head_code(page)
 
@@ -177,7 +177,7 @@ def _check_page(cfg, page, page_info) -> dict:
     return {
         "status": "needs_update",
         "alias": alias,
-        "static_url": static_url,
+        "lcp_url": lcp_url,
         "optim_url": optim_url,
         "current_code": current_code,
         "page_info": page_info,
@@ -189,8 +189,8 @@ def _apply_update(cfg, args, page, item) -> bool:
     page_id = str(item["page_info"]["id"])
     preload_tag = fixes.make_preload_tag(item["optim_url"])
 
-    print(f"    → изображение: {item['static_url']}")
-    print(f"    → preload URL: {item['optim_url']}")
+    print(f"    → LCP-изображение: {item['lcp_url']}")
+    print(f"    → preload URL:     {item['optim_url']}")
 
     browser.open_head_editor(page, cfg.project_id, page_id)
     current_code = browser.read_head_code(page)
@@ -225,7 +225,7 @@ def _run_apply(cfg, args, page, store_pages) -> None:
             continue
 
         if result["status"] == "no_image":
-            print("— нет товаров, пропуск")
+            print("— LCP не изображение, пропуск")
             no_image += 1
         elif result["status"] == "ok":
             print("✓ уже настроено")
@@ -243,7 +243,7 @@ def _run_apply(cfg, args, page, store_pages) -> None:
 
     print(
         f"\nИтого: {updated} обновлено, {already_ok} уже ок, "
-        f"{no_image} без товаров, {errors} ошибок"
+        f"{no_image} без LCP-изображения, {errors} ошибок"
     )
 
 
@@ -266,7 +266,7 @@ def _run_preview(cfg, args, page, store_pages) -> None:
             continue
 
         if result["status"] == "no_image":
-            print("— нет товаров, пропуск")
+            print("— LCP не изображение, пропуск")
             no_image += 1
         elif result["status"] == "ok":
             print("✓ уже настроено")
@@ -279,10 +279,10 @@ def _run_preview(cfg, args, page, store_pages) -> None:
 
     print()
     if not needs_update:
-        print(f"Всё в порядке: {already_ok} уже настроено, {no_image} без товаров.")
+        print(f"Всё в порядке: {already_ok} уже настроено, {no_image} без LCP-изображения.")
         return
 
-    print(f"Проверка завершена: {already_ok} уже ок, {no_image} без товаров, {len(needs_update)} требуют обновления.")
+    print(f"Проверка завершена: {already_ok} уже ок, {no_image} без LCP-изображения, {len(needs_update)} требуют обновления.")
 
     answer = input("\nПрименить изменения? [y/N]: ").strip().lower()
     if answer not in ("y", "д", "да", "yes"):
@@ -314,29 +314,29 @@ def _print_check_result(result: dict) -> None:
     """Выводит результат проверки одной страницы."""
     status = result["status"]
 
-    if status == "no_products":
-        print("Товары не найдены.")
-        print("На странице нет блока T-Store с карточками товаров.")
+    if status == "no_lcp_image":
+        print("LCP-элемент не является изображением.")
+        print("Preload для текстовых блоков не применяется.")
         return
 
-    print(f"Первый товар найден:")
-    print(f"  {result['static_url']}\n")
+    print(f"LCP-изображение:")
+    print(f"  {result['lcp_url']}\n")
 
     if status == "preload_ok":
         print("Preload тег: ЕСТЬ ✓")
         print(f"  {result['optim_url']}")
 
     elif status == "preload_wrong":
-        print("Preload тег: ЕСТЬ ✓ (указывает на другое изображение)")
+        print("Preload тег: ЕСТЬ, но указывает на другое изображение")
         print("\nТекущий preload на странице:")
         for href in result["existing_preloads"]:
             print(f"  {href}")
-        print(f"\nПервый товар в каталоге:")
-        print(f"  {result['static_url']}")
-        print(f"\nЕсли на странице есть обложка или карусель до каталога — preload настроен")
-        print(f"правильно (обложка загружается первой и является LCP-элементом).")
-        print(f"\nЕсли страница начинается сразу с каталога товаров — замените preload на:")
+        print(f"\nРеальный LCP (измерено браузером):")
+        print(f"  {result['lcp_url']}")
+        print(f"\nРекомендуемый тег:")
         print(f"  {result['preload_tag']}")
+        print("\nКак добавить в Tilda:")
+        print("  Настройки страницы → SEO → Дополнительный код HEAD → вставьте тег выше.")
 
     else:  # preload_missing
         print("Preload тег: НЕТ ✗")
@@ -368,7 +368,7 @@ def run_check(url: str | None) -> None:
                 _print_check_result(result)
             else:
                 print("\nПроверка страниц на наличие preload.")
-                print("Введите URL страницы с товарами. Для выхода нажмите Ctrl+C.\n")
+                print("Введите URL страницы. Для выхода нажмите Ctrl+C.\n")
                 while True:
                     try:
                         raw = input("URL > ").strip()

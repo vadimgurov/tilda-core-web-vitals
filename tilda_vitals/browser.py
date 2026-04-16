@@ -1,41 +1,47 @@
 """
 Все взаимодействия с браузером:
-- живой сайт (поиск LCP-изображения)
+- живой сайт (измерение LCP через PerformanceObserver)
 - редактор Tilda (HEAD-код, публикация)
 """
 
 import time
 
+# JavaScript: подписывается на LCP-события с buffered=true и возвращает URL
+# последнего LCP-кандидата (или null если LCP — текстовый блок).
+# Ждём 3 секунды после networkidle чтобы собрать все кандидаты.
+_LCP_JS = """
+    () => new Promise(resolve => {
+        let lastUrl = null;
+        new PerformanceObserver(list => {
+            for (const e of list.getEntries()) {
+                if (e.url) lastUrl = e.url;
+            }
+        }).observe({ type: 'largest-contentful-paint', buffered: true });
+        setTimeout(() => resolve(lastUrl), 3000);
+    })
+"""
+
 
 def find_lcp_image(page, site_url: str, alias: str) -> str | None:
     """
     Открывает страницу сайта в мобильном viewport (390×844),
-    ждёт загрузки карточек товаров и возвращает data-original
-    первого изображения товара, или None если товаров нет.
+    измеряет LCP через PerformanceObserver и возвращает URL LCP-изображения,
+    или None если LCP-элемент не является изображением.
     """
     page.set_viewport_size({"width": 390, "height": 844})
-    page.goto(f"{site_url}{alias}", wait_until="domcontentloaded")
-    try:
-        page.wait_for_selector(
-            ".t-store__card__bgimg[data-original]", timeout=10_000
-        )
-    except Exception:
-        return None
-    return page.evaluate(
-        "() => {"
-        "  const el = document.querySelector('.t-store__card__bgimg[data-original]');"
-        "  return el ? el.getAttribute('data-original') : null;"
-        "}"
-    )
+    page.goto(f"{site_url}{alias}", wait_until="networkidle")
+    lcp_url = page.evaluate(_LCP_JS)
+    return lcp_url if lcp_url else None
 
 
 def check_page_preload(page, url: str) -> dict:
     """
-    Открывает публичную страницу, ищет первый товар T-Store и проверяет наличие preload-тега.
+    Открывает публичную страницу, измеряет LCP через PerformanceObserver
+    и проверяет наличие preload-тега для LCP-изображения.
 
     Возвращает dict:
-      status: "no_products" | "preload_ok" | "preload_missing" | "preload_wrong"
-      static_url: URL найденного изображения (если нашли товар)
+      status: "no_lcp_image" | "preload_ok" | "preload_missing" | "preload_wrong"
+      lcp_url:  URL реального LCP-изображения
       optim_url:  рекомендуемый оптимизированный URL
       preload_tag: рекомендуемый тег для вставки в HEAD
       existing_preloads: список href всех preload-тегов с as="image" на странице
@@ -43,24 +49,13 @@ def check_page_preload(page, url: str) -> dict:
     from .fixes import build_optim_url, make_preload_tag
 
     page.set_viewport_size({"width": 390, "height": 844})
-    page.goto(url, wait_until="domcontentloaded")
+    page.goto(url, wait_until="networkidle")
 
-    # Ищем первый товар
-    try:
-        page.wait_for_selector(".t-store__card__bgimg[data-original]", timeout=10_000)
-    except Exception:
-        return {"status": "no_products"}
+    lcp_url = page.evaluate(_LCP_JS)
+    if not lcp_url:
+        return {"status": "no_lcp_image"}
 
-    static_url = page.evaluate(
-        "() => {"
-        "  const el = document.querySelector('.t-store__card__bgimg[data-original]');"
-        "  return el ? el.getAttribute('data-original') : null;"
-        "}"
-    )
-    if not static_url:
-        return {"status": "no_products"}
-
-    optim_url = build_optim_url(static_url)
+    optim_url = build_optim_url(lcp_url)
     preload_tag = make_preload_tag(optim_url)
 
     # Собираем все preload as="image" теги на странице
@@ -79,7 +74,7 @@ def check_page_preload(page, url: str) -> dict:
 
     return {
         "status": status,
-        "static_url": static_url,
+        "lcp_url": lcp_url,
         "optim_url": optim_url,
         "preload_tag": preload_tag,
         "existing_preloads": existing_preloads or [],
