@@ -200,11 +200,11 @@ def _do_fix(cfg: Config, args, ctx) -> None:
     # ── Итог проверки ──
     print()
     if not needs_update:
-        print("Все страницы уже настроены.")
+        print(f"Всё в порядке: все страницы уже настроены ({already_ok_count} ✓, {no_image_count} без товаров).")
         page.close()
         return
 
-    print(f"Страниц для обновления: {len(needs_update)}")
+    print(f"Проверка завершена: {already_ok_count} уже настроено, {no_image_count} без товаров, {len(needs_update)} требуют обновления.")
 
     # ── Подтверждение ──
     if not args.apply:
@@ -215,7 +215,9 @@ def _do_fix(cfg: Config, args, ctx) -> None:
             return
 
     # ── Применяем обновления ──
-    print()
+    print(f"\n{'─' * 50}")
+    print(f"Обновляем {len(needs_update)} страниц...")
+    print(f"{'─' * 50}\n")
     updated = errors = 0
 
     for i, item in enumerate(needs_update, 1):
