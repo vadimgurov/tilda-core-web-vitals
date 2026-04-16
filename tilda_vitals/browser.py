@@ -6,39 +6,21 @@
 
 import time
 
-# JavaScript: подписывается на LCP-события с buffered=true и возвращает URL
-# финального LCP-кандидата. Резолвится через 2 секунды после последнего изменения
-# (LCP может обновляться по мере подгрузки lazy-load контента).
-# Абсолютный таймаут — 10 секунд.
-_LCP_JS = """
-    () => new Promise(resolve => {
-        let lastUrl = null;
-        let debounce = null;
-        const done = () => resolve(lastUrl);
-        const obs = new PerformanceObserver(list => {
-            for (const e of list.getEntries()) {
-                if (e.url) lastUrl = e.url;
-            }
-            clearTimeout(debounce);
-            debounce = setTimeout(done, 2000);
-        });
-        obs.observe({ type: 'largest-contentful-paint', buffered: true });
-        setTimeout(done, 10000);
-    })
+# init-скрипт: запускается в каждом новом документе ДО любых других скриптов.
+# Собирает LCP-записи в window.__lcpUrl по мере загрузки страницы.
+_LCP_INIT_SCRIPT = """
+    window.__lcpUrl = null;
+    new PerformanceObserver(list => {
+        for (const e of list.getEntries()) {
+            if (e.url) window.__lcpUrl = e.url;
+        }
+    }).observe({ type: 'largest-contentful-paint', buffered: true });
 """
 
 
-def _trigger_lazy_load(page) -> None:
-    """
-    Скроллит страницу через JS чтобы активировать lazy-load изображений.
-    JS-скролл не считается пользовательским взаимодействием — LCP продолжает обновляться.
-    После скролла ждём networkidle чтобы lazy-load запросы завершились.
-    """
-    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-    try:
-        page.wait_for_load_state("networkidle", timeout=5_000)
-    except Exception:
-        pass
+def setup_lcp_tracking(page) -> None:
+    """Регистрирует сборщик LCP. Вызывать один раз после создания страницы."""
+    page.add_init_script(_LCP_INIT_SCRIPT)
 
 
 def find_lcp_image(page, site_url: str, alias: str) -> str | None:
@@ -49,8 +31,9 @@ def find_lcp_image(page, site_url: str, alias: str) -> str | None:
     """
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto(f"{site_url}{alias}", wait_until="networkidle")
-    _trigger_lazy_load(page)
-    lcp_url = page.evaluate(_LCP_JS)
+    # Небольшая пауза — дать браузеру зафиксировать финальный LCP после networkidle
+    page.wait_for_timeout(1000)
+    lcp_url = page.evaluate("() => window.__lcpUrl")
     return lcp_url if lcp_url else None
 
 
@@ -70,9 +53,8 @@ def check_page_preload(page, url: str) -> dict:
 
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto(url, wait_until="networkidle")
-    _trigger_lazy_load(page)
-
-    lcp_url = page.evaluate(_LCP_JS)
+    page.wait_for_timeout(1000)
+    lcp_url = page.evaluate("() => window.__lcpUrl")
     if not lcp_url:
         return {"status": "no_lcp_image"}
 

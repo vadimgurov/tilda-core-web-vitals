@@ -127,6 +127,7 @@ def run_fix(cfg: Config, args) -> None:
 
 def _do_fix(cfg: Config, args, ctx) -> None:
     page = ctx.new_page()
+    browser.setup_lcp_tracking(page)
 
     # ── Получаем список страниц ──
     print("Получаем список страниц из Tilda API...", end=" ", flush=True)
@@ -362,6 +363,7 @@ def run_check(url: str | None) -> None:
                               args=["--no-sandbox", "--disable-dev-shm-usage"])
         ctx = b.new_context()
         page = ctx.new_page()
+        browser.setup_lcp_tracking(page)
 
         try:
             if url:
