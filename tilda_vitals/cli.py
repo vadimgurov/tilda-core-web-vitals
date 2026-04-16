@@ -327,11 +327,15 @@ def _print_check_result(result: dict) -> None:
         print(f"  {result['optim_url']}")
 
     elif status == "preload_wrong":
-        print("Preload тег: ЕСТЬ, но указывает на другое изображение ⚠")
-        print("Текущие preload-теги на странице:")
+        print("Preload тег: ЕСТЬ ✓ (указывает на другое изображение)")
+        print("\nТекущий preload на странице:")
         for href in result["existing_preloads"]:
             print(f"  {href}")
-        print(f"\nРекомендуется заменить на:")
+        print(f"\nПервый товар в каталоге:")
+        print(f"  {result['static_url']}")
+        print(f"\nЕсли на странице есть обложка или карусель до каталога — preload настроен")
+        print(f"правильно (обложка загружается первой и является LCP-элементом).")
+        print(f"\nЕсли страница начинается сразу с каталога товаров — замените preload на:")
         print(f"  {result['preload_tag']}")
 
     else:  # preload_missing
