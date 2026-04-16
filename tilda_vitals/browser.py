@@ -64,7 +64,16 @@ def check_page_preload(page, url: str) -> dict:
         ").map(el => el.getAttribute('href'))"
     )
 
-    if lcp_url in (existing_preloads or []):
+    def url_path(u: str) -> str:
+        """Возвращает путь URL без схемы и хоста для нормализованного сравнения."""
+        from urllib.parse import urlparse
+        parsed = urlparse(u)
+        return parsed.path + ("?" + parsed.query if parsed.query else "")
+
+    lcp_path = url_path(lcp_url)
+    preload_paths = [url_path(u) for u in (existing_preloads or [])]
+
+    if lcp_path in preload_paths:
         status = "preload_ok"
     elif existing_preloads:
         status = "preload_wrong"
