@@ -80,10 +80,12 @@ curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/ma
    *(Или скачайте с [python.org](https://www.python.org/downloads/windows/) — при установке
    поставьте галочку **"Add Python to PATH"**)*
 
-2. Откройте **PowerShell** (Win + X → Windows PowerShell) и выполните:
+2. Скачайте установщик: [install.ps1](https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.ps1)
+
+3. Откройте **PowerShell** (Win + X → Windows PowerShell) в папке со скачанным файлом и выполните:
 
 ```powershell
-pip install pipx; pipx install https://github.com/vadimgurov/tilda-core-web-vitals/archive/refs/heads/main.zip; tilda-vitals
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned; .\install.ps1
 ```
 
 > Chromium скачается автоматически при первом запуске.
@@ -152,6 +154,8 @@ tilda-vitals login
 
 ## Обновление
 
+Запустите установщик заново — он перезапишет скрипты и обновит зависимости:
+
 ```bash
-pipx install --force https://github.com/vadimgurov/tilda-core-web-vitals/archive/refs/heads/main.zip
+curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.sh | bash
 ```
