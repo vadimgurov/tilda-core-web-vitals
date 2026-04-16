@@ -163,6 +163,42 @@ tilda-vitals --apply
 tilda-vitals --page /moya-stranica
 ```
 
+### Проверить любой сайт
+
+Можно проверить preload на любой странице в интернете — без API-ключей и без входа в Tilda:
+
+```bash
+tilda-vitals check https://buy-wonder.com/catalog
+```
+
+Пример вывода если preload отсутствует:
+
+```
+Проверяем https://buy-wonder.com/catalog...
+
+Первый товар найден:
+  https://static.tildacdn.com/stor3f2a.../roses.jpg
+
+Preload тег: НЕТ ✗
+
+Рекомендуемый тег для добавления в HEAD страницы:
+  <link rel="preload" as="image" fetchpriority="high" href="https://optim.tildacdn.com/...">
+
+Как добавить в Tilda:
+  Настройки страницы → SEO → Дополнительный код HEAD → вставьте тег выше.
+```
+
+Пример вывода если preload есть но указывает на другой товар:
+
+```
+Preload тег: ЕСТЬ, но указывает на другое изображение ⚠
+Текущие preload-теги на странице:
+  https://optim.tildacdn.com/.../old-image.jpg.webp
+
+Рекомендуется заменить на:
+  <link rel="preload" as="image" fetchpriority="high" href="https://optim.tildacdn.com/.../new-image.jpg.webp">
+```
+
 ### Войти заново (если сессия истекла)
 
 ```bash

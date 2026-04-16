@@ -29,6 +29,63 @@ def find_lcp_image(page, site_url: str, alias: str) -> str | None:
     )
 
 
+def check_page_preload(page, url: str) -> dict:
+    """
+    Открывает публичную страницу, ищет первый товар T-Store и проверяет наличие preload-тега.
+
+    Возвращает dict:
+      status: "no_products" | "preload_ok" | "preload_missing" | "preload_wrong"
+      static_url: URL найденного изображения (если нашли товар)
+      optim_url:  рекомендуемый оптимизированный URL
+      preload_tag: рекомендуемый тег для вставки в HEAD
+      existing_preloads: список href всех preload-тегов с as="image" на странице
+    """
+    from .fixes import build_optim_url, make_preload_tag
+
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto(url, wait_until="domcontentloaded")
+
+    # Ищем первый товар
+    try:
+        page.wait_for_selector(".t-store__card__bgimg[data-original]", timeout=10_000)
+    except Exception:
+        return {"status": "no_products"}
+
+    static_url = page.evaluate(
+        "() => {"
+        "  const el = document.querySelector('.t-store__card__bgimg[data-original]');"
+        "  return el ? el.getAttribute('data-original') : null;"
+        "}"
+    )
+    if not static_url:
+        return {"status": "no_products"}
+
+    optim_url = build_optim_url(static_url)
+    preload_tag = make_preload_tag(optim_url)
+
+    # Собираем все preload as="image" теги на странице
+    existing_preloads = page.evaluate(
+        "() => Array.from("
+        "  document.querySelectorAll('link[rel=\"preload\"][as=\"image\"]')"
+        ").map(el => el.getAttribute('href'))"
+    )
+
+    if optim_url in (existing_preloads or []):
+        status = "preload_ok"
+    elif existing_preloads:
+        status = "preload_wrong"
+    else:
+        status = "preload_missing"
+
+    return {
+        "status": status,
+        "static_url": static_url,
+        "optim_url": optim_url,
+        "preload_tag": preload_tag,
+        "existing_preloads": existing_preloads or [],
+    }
+
+
 def open_head_editor(page, project_id: str, page_id: str) -> None:
     """Открывает редактор HEAD-кода страницы и ждёт инициализации ACE editor."""
     page.set_viewport_size({"width": 1280, "height": 800})

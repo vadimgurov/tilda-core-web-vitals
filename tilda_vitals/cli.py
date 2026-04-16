@@ -310,6 +310,57 @@ def _run_preview(cfg, args, page, store_pages) -> None:
 # CLI
 # ──────────────────────────────────────────────────────────────────────────────
 
+def run_check(url: str) -> None:
+    """Проверяет любую публичную страницу на наличие preload первого товара."""
+    from playwright.sync_api import sync_playwright
+
+    _ensure_chromium()
+    print(f"\nПроверяем {url}...\n")
+
+    with sync_playwright() as p:
+        b = p.chromium.launch(headless=True,
+                              args=["--no-sandbox", "--disable-dev-shm-usage"])
+        ctx = b.new_context()
+        page = ctx.new_page()
+        try:
+            result = browser.check_page_preload(page, url)
+        except KeyboardInterrupt:
+            print("Прервано.")
+            b.close()
+            return
+        finally:
+            b.close()
+
+    status = result["status"]
+
+    if status == "no_products":
+        print("Товары не найдены.")
+        print("На странице нет блока T-Store с карточками товаров (.t-store__card__bgimg).")
+        return
+
+    print(f"Первый товар найден:")
+    print(f"  {result['static_url']}\n")
+
+    if status == "preload_ok":
+        print("Preload тег: ЕСТЬ ✓")
+        print(f"  {result['optim_url']}")
+
+    elif status == "preload_wrong":
+        print("Preload тег: ЕСТЬ, но указывает на другое изображение ⚠")
+        print("Текущие preload-теги на странице:")
+        for href in result["existing_preloads"]:
+            print(f"  {href}")
+        print(f"\nРекомендуется заменить на:")
+        print(f"  {result['preload_tag']}")
+
+    else:  # preload_missing
+        print("Preload тег: НЕТ ✗")
+        print("\nРекомендуемый тег для добавления в HEAD страницы:")
+        print(f"  {result['preload_tag']}")
+        print("\nКак добавить в Tilda:")
+        print("  Настройки страницы → SEO → Дополнительный код HEAD → вставьте тег выше.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="tilda-vitals",
@@ -317,9 +368,10 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Примеры:\n"
-            "  tilda-vitals              # проверить, показать что нужно\n"
+            "  tilda-vitals              # проверить свой сайт\n"
             "  tilda-vitals --apply      # проверить и применить\n"
             "  tilda-vitals --page /my-page  # обработать одну страницу\n"
+            "  tilda-vitals check https://example.com/catalog  # проверить любой сайт\n"
             "  tilda-vitals login        # войти заново\n"
             "  tilda-vitals config       # изменить настройки\n"
         ),
@@ -328,15 +380,23 @@ def main() -> None:
         "command",
         nargs="?",
         default="fix",
-        choices=["fix", "login", "config"],
+        choices=["fix", "login", "config", "check"],
         help="Команда (по умолчанию: fix)",
     )
+    parser.add_argument("url", nargs="?", help="URL страницы для команды check")
     parser.add_argument("--page", metavar="PATH", help="Обработать только эту страницу")
     parser.add_argument("--apply", action="store_true", help="Применить без подтверждения")
     parser.add_argument("--no-publish", action="store_true", dest="no_publish",
                         help="Сохранить HEAD-код, но не публиковать")
 
     args = parser.parse_args()
+
+    # ── Команда: check ──
+    if args.command == "check":
+        if not args.url:
+            parser.error("Укажите URL: tilda-vitals check https://example.com/catalog")
+        run_check(args.url)
+        return
 
     # ── Команда: login ──
     if args.command == "login":
