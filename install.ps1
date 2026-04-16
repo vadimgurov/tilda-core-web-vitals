@@ -46,14 +46,12 @@ Write-Host "Устанавливаем зависимости..."
 python -m venv "$InstallDir\venv" --upgrade-deps | Out-Null
 & "$InstallDir\venv\Scripts\pip" install --quiet playwright requests pydantic
 
-# Создаём запускающий скрипт
+# Создаём запускающий bat-файл (без here-string чтобы избежать проблем с кавычками)
 if (-not (Test-Path $BinDir)) { New-Item -ItemType Directory -Path $BinDir | Out-Null }
 $Launcher = "$BinDir\tilda-vitals.bat"
-@"
-@echo off
-set PYTHONPATH=$InstallDir
-"$InstallDir\venv\Scripts\python" -m tilda_vitals.cli %*
-"@ | Set-Content $Launcher
+$PythonExe = "$InstallDir\venv\Scripts\python"
+$batContent = "@echo off`r`nset PYTHONPATH=$InstallDir`r`n`"$PythonExe`" -m tilda_vitals.cli %*"
+[System.IO.File]::WriteAllText($Launcher, $batContent, [System.Text.Encoding]::ASCII)
 
 # Добавляем BinDir в PATH пользователя если ещё не там
 $UserPath = [Environment]::GetEnvironmentVariable("PATH", "User")
