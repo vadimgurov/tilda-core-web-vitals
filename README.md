@@ -251,8 +251,11 @@ tilda-vitals login
 
 ## Обновление
 
-Запустите установщик заново — он перезапишет скрипты и обновит зависимости:
+Обновление выполняется той же командой что и установка — установщик просто перезапишет скрипты:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh
 ```
+
+> Флаг `-o /tmp/install.sh` нужен чтобы обойти кэш браузера/провайдера и получить свежую версию.
+> После обновления сразу запустится `tilda-vitals` — можно прервать через Ctrl+C если просто обновляли.
