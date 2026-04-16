@@ -151,10 +151,10 @@ def _do_fix(cfg: Config, args, ctx) -> None:
                 print(f"  {v}")
             sys.exit(1)
 
-    if args.apply:
-        _run_apply(cfg, args, page, store_pages)
-    else:
+    if args.preview:
         _run_preview(cfg, args, page, store_pages)
+    else:
+        _run_apply(cfg, args, page, store_pages)
 
     page.close()
 
@@ -399,8 +399,8 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Примеры:\n"
-            "  tilda-vitals              # проверить свой сайт\n"
-            "  tilda-vitals --apply      # проверить и применить\n"
+            "  tilda-vitals              # проверить и обновить все страницы\n"
+            "  tilda-vitals --preview    # только показать что нужно исправить\n"
             "  tilda-vitals --page /my-page  # обработать одну страницу\n"
             "  tilda-vitals check https://example.com/catalog  # проверить любой сайт\n"
             "  tilda-vitals login        # войти заново\n"
@@ -416,7 +416,7 @@ def main() -> None:
     )
     parser.add_argument("url", nargs="?", help="URL страницы для команды check")
     parser.add_argument("--page", metavar="PATH", help="Обработать только эту страницу")
-    parser.add_argument("--apply", action="store_true", help="Применить без подтверждения")
+    parser.add_argument("--preview", action="store_true", help="Только показать что нужно исправить, без применения")
     parser.add_argument("--no-publish", action="store_true", dest="no_publish",
                         help="Сохранить HEAD-код, но не публиковать")
 
