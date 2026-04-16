@@ -209,12 +209,13 @@ def _apply_update(cfg, args, page, item) -> bool:
 
 def _run_apply(cfg, args, page, store_pages) -> None:
     """Одним проходом: проверяет и сразу обновляет."""
+    total = len(store_pages)
     print("Проверяем и обновляем страницы:")
     updated = already_ok = no_image = errors = 0
 
-    for page_info in store_pages:
+    for i, page_info in enumerate(store_pages, 1):
         alias = "/" + page_info.get("alias", "").strip("/")
-        print(f"  {alias:<30}", end=" ", flush=True)
+        print(f"  [{i}/{total}] {alias:<30}", end=" ", flush=True)
 
         try:
             result = _check_page(cfg, page, page_info)
@@ -248,13 +249,14 @@ def _run_apply(cfg, args, page, store_pages) -> None:
 
 def _run_preview(cfg, args, page, store_pages) -> None:
     """Сначала проверяет все страницы, показывает список, потом спрашивает подтверждение."""
+    total = len(store_pages)
     print("Проверяем страницы:")
     needs_update: list[dict] = []
     already_ok = no_image = errors = 0
 
-    for page_info in store_pages:
+    for i, page_info in enumerate(store_pages, 1):
         alias = "/" + page_info.get("alias", "").strip("/")
-        print(f"  {alias:<30}", end=" ", flush=True)
+        print(f"  [{i}/{total}] {alias:<30}", end=" ", flush=True)
 
         try:
             result = _check_page(cfg, page, page_info)
