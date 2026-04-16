@@ -148,19 +148,19 @@ python -m tilda_vitals.cli
 
 ```
 Проверка страниц на наличие preload.
-Введите URL страницы с товарами. Для выхода нажмите Ctrl+C.
+Введите URL страницы. Для выхода нажмите Ctrl+C.
 
 URL > https://buy-wonder.com/catalog
 
 Проверяем https://buy-wonder.com/catalog...
 
-Первый товар найден:
-  https://static.tildacdn.com/stor6463-.../e35360f2...png
+LCP-изображение:
+  https://optim.tildacdn.com/stor6463-.../-/resize/240x240/-/format/webp/e35360f2...png.webp
 
 Preload тег: НЕТ ✗
 
 Рекомендуемый тег для добавления в HEAD страницы:
-  <link rel="preload" as="image" fetchpriority="high" href="https://optim.tildacdn.com/...">
+  <link rel="preload" as="image" fetchpriority="high" href="https://optim.tildacdn.com/stor6463-.../-/resize/240x240/-/format/webp/e35360f2...png.webp">
 
 Как добавить в Tilda:
   Настройки страницы → SEO → Дополнительный код HEAD → вставьте тег выше.
@@ -217,8 +217,8 @@ tilda-vitals
   [2/96] /bukety                     ✓ уже настроено
   [3/96] /nedorogie-bukety           ✓ уже настроено
   [4/96] /suhocvety                  → обновляем...
-    → LCP-изображение: https://static.tildacdn.com/stor3f2a.../roses.jpg
-    → preload URL:     https://optim.tildacdn.com/stor3f2a.../-/resize/400x400/-/format/webp/roses.jpg.webp
+    → LCP-изображение: https://optim.tildacdn.com/stor3f2a.../-/resize/240x240/-/format/webp/roses.jpg.webp
+    → вставляем в HEAD: <link rel="preload" as="image" fetchpriority="high" href="https://optim.tildacdn.com/stor3f2a.../-/resize/240x240/-/format/webp/roses.jpg.webp">
     → публикуем... ✓
     ✓ обновлено
   ...
