@@ -310,32 +310,13 @@ def _run_preview(cfg, args, page, store_pages) -> None:
 # CLI
 # ──────────────────────────────────────────────────────────────────────────────
 
-def run_check(url: str) -> None:
-    """Проверяет любую публичную страницу на наличие preload первого товара."""
-    from playwright.sync_api import sync_playwright
-
-    _ensure_chromium()
-    print(f"\nПроверяем {url}...\n")
-
-    with sync_playwright() as p:
-        b = p.chromium.launch(headless=True,
-                              args=["--no-sandbox", "--disable-dev-shm-usage"])
-        ctx = b.new_context()
-        page = ctx.new_page()
-        try:
-            result = browser.check_page_preload(page, url)
-        except KeyboardInterrupt:
-            print("Прервано.")
-            b.close()
-            return
-        finally:
-            b.close()
-
+def _print_check_result(result: dict) -> None:
+    """Выводит результат проверки одной страницы."""
     status = result["status"]
 
     if status == "no_products":
         print("Товары не найдены.")
-        print("На странице нет блока T-Store с карточками товаров (.t-store__card__bgimg).")
+        print("На странице нет блока T-Store с карточками товаров.")
         return
 
     print(f"Первый товар найден:")
@@ -359,6 +340,52 @@ def run_check(url: str) -> None:
         print(f"  {result['preload_tag']}")
         print("\nКак добавить в Tilda:")
         print("  Настройки страницы → SEO → Дополнительный код HEAD → вставьте тег выше.")
+
+
+def run_check(url: str | None) -> None:
+    """
+    Если url задан — проверяет одну страницу.
+    Если нет — запускает интерактивный цикл: спрашивает URL снова и снова до Ctrl+C.
+    """
+    from playwright.sync_api import sync_playwright
+
+    _ensure_chromium()
+
+    with sync_playwright() as p:
+        b = p.chromium.launch(headless=True,
+                              args=["--no-sandbox", "--disable-dev-shm-usage"])
+        ctx = b.new_context()
+        page = ctx.new_page()
+
+        try:
+            if url:
+                print(f"\nПроверяем {url}...\n")
+                result = browser.check_page_preload(page, url)
+                _print_check_result(result)
+            else:
+                print("\nПроверка страниц на наличие preload.")
+                print("Введите URL страницы с товарами. Для выхода нажмите Ctrl+C.\n")
+                while True:
+                    try:
+                        raw = input("URL > ").strip()
+                    except EOFError:
+                        break
+                    if not raw:
+                        continue
+                    if not raw.startswith("http"):
+                        raw = "https://" + raw
+                    print(f"\nПроверяем {raw}...\n")
+                    try:
+                        result = browser.check_page_preload(page, raw)
+                        _print_check_result(result)
+                    except Exception as e:
+                        print(f"Ошибка: {e}")
+                    print()
+
+        except KeyboardInterrupt:
+            print("\nВыход.")
+        finally:
+            b.close()
 
 
 def main() -> None:
@@ -393,8 +420,6 @@ def main() -> None:
 
     # ── Команда: check ──
     if args.command == "check":
-        if not args.url:
-            parser.error("Укажите URL: tilda-vitals check https://example.com/catalog")
         run_check(args.url)
         return
 

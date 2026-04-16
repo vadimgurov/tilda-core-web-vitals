@@ -165,7 +165,15 @@ tilda-vitals --page /moya-stranica
 
 ### Проверить любой сайт
 
-Можно проверить preload на любой странице в интернете — без API-ключей и без входа в Tilda:
+Можно проверить preload на любой странице в интернете — без API-ключей и без входа в Tilda.
+
+Интерактивный режим (спрашивает URL в цикле до Ctrl+C):
+
+```bash
+tilda-vitals check
+```
+
+Проверить одну конкретную страницу:
 
 ```bash
 tilda-vitals check https://buy-wonder.com/catalog
