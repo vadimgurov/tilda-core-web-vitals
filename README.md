@@ -171,18 +171,20 @@ tilda-vitals --page /moya-stranica
 tilda-vitals check https://buy-wonder.com/catalog
 ```
 
+Скрипт открывает страницу в браузере, находит первый товар в блоке T-Store и проверяет есть ли в `<head>` страницы preload-тег для этого изображения.
+
 Пример вывода если preload отсутствует:
 
 ```
 Проверяем https://buy-wonder.com/catalog...
 
 Первый товар найден:
-  https://static.tildacdn.com/stor3f2a.../roses.jpg
+  https://static.tildacdn.com/stor6463-6362-4438-a539-626236663532/e35360f21a85431cf5087181944ada2e.png
 
 Preload тег: НЕТ ✗
 
 Рекомендуемый тег для добавления в HEAD страницы:
-  <link rel="preload" as="image" fetchpriority="high" href="https://optim.tildacdn.com/...">
+  <link rel="preload" as="image" fetchpriority="high" href="https://optim.tildacdn.com/stor6463-6362-4438-a539-626236663532/-/resize/400x400/-/format/webp/e35360f21a85431cf5087181944ada2e.png.webp">
 
 Как добавить в Tilda:
   Настройки страницы → SEO → Дополнительный код HEAD → вставьте тег выше.
