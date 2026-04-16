@@ -190,6 +190,7 @@ def _apply_update(cfg, args, page, item) -> bool:
     preload_tag = item["preload_tag"]
 
     print(f"    → LCP-изображение: {item['lcp_url']}")
+    print(f"    → вставляем в HEAD: {preload_tag}")
 
     browser.open_head_editor(page, cfg.project_id, page_id)
     current_code = browser.read_head_code(page)
