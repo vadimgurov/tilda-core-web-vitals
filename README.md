@@ -83,7 +83,7 @@ curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/ma
 2. Откройте **PowerShell** (Win + X → Windows PowerShell) и выполните:
 
 ```powershell
-pip install https://github.com/vadimgurov/tilda-core-web-vitals/archive/refs/heads/main.zip; tilda-vitals
+pip install pipx; pipx install https://github.com/vadimgurov/tilda-core-web-vitals/archive/refs/heads/main.zip; tilda-vitals
 ```
 
 > Chromium скачается автоматически при первом запуске.
@@ -153,5 +153,5 @@ tilda-vitals login
 ## Обновление
 
 ```bash
-pip install --upgrade https://github.com/vadimgurov/tilda-core-web-vitals/archive/refs/heads/main.zip
+pipx install --force https://github.com/vadimgurov/tilda-core-web-vitals/archive/refs/heads/main.zip
 ```
