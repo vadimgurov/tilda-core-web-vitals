@@ -2,7 +2,7 @@
 set -e
 
 # tilda-vitals — установка и первый запуск
-# Использование: curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-vitals/main/install.sh | bash
+# Использование: curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.sh | bash
 
 echo ""
 echo "=== Установка tilda-vitals ==="
@@ -27,7 +27,7 @@ echo "Python найден: $(python3 --version)"
 # Устанавливаем пакет
 echo ""
 echo "Устанавливаем tilda-vitals..."
-pip3 install --quiet https://github.com/vadimgurov/tilda-vitals/archive/refs/heads/main.zip
+pip3 install --quiet https://github.com/vadimgurov/tilda-core-web-vitals/archive/refs/heads/main.zip
 
 echo ""
 echo "Установка завершена. Запускаем..."

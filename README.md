@@ -45,13 +45,13 @@ Tilda загружает изображения товаров через JavaSc
 Одна команда — скачивает и запускает установщик:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-vitals/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.sh | bash
 ```
 
 Если `curl` недоступен:
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/vadimgurov/tilda-vitals/main/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.sh | bash
 ```
 
 > Установщик проверит Python, установит пакет и сразу запустит мастер настройки.
@@ -65,7 +65,7 @@ wget -qO- https://raw.githubusercontent.com/vadimgurov/tilda-vitals/main/install
 Одна команда:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-vitals/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.sh | bash
 ```
 
 > Если Python не установлен: `brew install python3`
@@ -83,7 +83,7 @@ curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-vitals/main/instal
 2. Откройте **PowerShell** (Win + X → Windows PowerShell) и выполните:
 
 ```powershell
-pip install https://github.com/vadimgurov/tilda-vitals/archive/refs/heads/main.zip; tilda-vitals
+pip install https://github.com/vadimgurov/tilda-core-web-vitals/archive/refs/heads/main.zip; tilda-vitals
 ```
 
 > Chromium скачается автоматически при первом запуске.
@@ -153,5 +153,5 @@ tilda-vitals login
 ## Обновление
 
 ```bash
-pip install --upgrade https://github.com/vadimgurov/tilda-vitals/archive/refs/heads/main.zip
+pip install --upgrade https://github.com/vadimgurov/tilda-core-web-vitals/archive/refs/heads/main.zip
 ```
