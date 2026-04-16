@@ -69,4 +69,4 @@ Write-Host ""
 Write-Host "Установка завершена. Запускаем..." -ForegroundColor Green
 Write-Host ""
 
-& "$InstallDir\venv\Scripts\python" -m tilda_vitals.cli
+& "$InstallDir\venv\Scripts\python" -m tilda_vitals.cli check
