@@ -215,7 +215,8 @@ def _run_apply(cfg, args, page, store_pages) -> None:
 
     for i, page_info in enumerate(store_pages, 1):
         alias = "/" + page_info.get("alias", "").strip("/")
-        print(f"  [{i}/{total}] {alias:<30}", end=" ", flush=True)
+        full_url = cfg.site_url + alias
+        print(f"  [{i}/{total}] {full_url}", end=" ", flush=True)
 
         try:
             result = _check_page(cfg, page, page_info)
@@ -256,7 +257,8 @@ def _run_preview(cfg, args, page, store_pages) -> None:
 
     for i, page_info in enumerate(store_pages, 1):
         alias = "/" + page_info.get("alias", "").strip("/")
-        print(f"  [{i}/{total}] {alias:<30}", end=" ", flush=True)
+        full_url = cfg.site_url + alias
+        print(f"  [{i}/{total}] {full_url}", end=" ", flush=True)
 
         try:
             result = _check_page(cfg, page, page_info)
