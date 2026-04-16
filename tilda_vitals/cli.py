@@ -167,18 +167,18 @@ def _check_page(cfg, page, page_info) -> dict:
     if not lcp_url:
         return {"status": "no_image", "alias": alias}
 
-    optim_url = fixes.build_optim_url(lcp_url)
+    preload_tag = fixes.make_preload_tag(lcp_url)
     browser.open_head_editor(page, cfg.project_id, str(page_info["id"]))
     current_code = browser.read_head_code(page)
 
-    if optim_url in current_code:
+    if lcp_url in current_code:
         return {"status": "ok", "alias": alias}
 
     return {
         "status": "needs_update",
         "alias": alias,
         "lcp_url": lcp_url,
-        "optim_url": optim_url,
+        "preload_tag": preload_tag,
         "current_code": current_code,
         "page_info": page_info,
     }
@@ -187,10 +187,9 @@ def _check_page(cfg, page, page_info) -> dict:
 def _apply_update(cfg, args, page, item) -> bool:
     """Применяет обновление к одной странице. Возвращает True при успехе."""
     page_id = str(item["page_info"]["id"])
-    preload_tag = fixes.make_preload_tag(item["optim_url"])
+    preload_tag = item["preload_tag"]
 
     print(f"    → LCP-изображение: {item['lcp_url']}")
-    print(f"    → preload URL:     {item['optim_url']}")
 
     browser.open_head_editor(page, cfg.project_id, page_id)
     current_code = browser.read_head_code(page)
@@ -324,7 +323,7 @@ def _print_check_result(result: dict) -> None:
 
     if status == "preload_ok":
         print("Preload тег: ЕСТЬ ✓")
-        print(f"  {result['optim_url']}")
+        print(f"  {result['lcp_url']}")
 
     elif status == "preload_wrong":
         print("Preload тег: ЕСТЬ, но указывает на другое изображение")
@@ -333,7 +332,7 @@ def _print_check_result(result: dict) -> None:
             print(f"  {href}")
         print(f"\nРеальный LCP (измерено браузером):")
         print(f"  {result['lcp_url']}")
-        print(f"\nРекомендуемый тег:")
+        print(f"\nРекомендуемый тег для LCP:")
         print(f"  {result['preload_tag']}")
         print("\nКак добавить в Tilda:")
         print("  Настройки страницы → SEO → Дополнительный код HEAD → вставьте тег выше.")

@@ -46,7 +46,7 @@ def check_page_preload(page, url: str) -> dict:
       preload_tag: рекомендуемый тег для вставки в HEAD
       existing_preloads: список href всех preload-тегов с as="image" на странице
     """
-    from .fixes import build_optim_url, make_preload_tag
+    from .fixes import make_preload_tag
 
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto(url, wait_until="networkidle")
@@ -55,8 +55,7 @@ def check_page_preload(page, url: str) -> dict:
     if not lcp_url:
         return {"status": "no_lcp_image"}
 
-    optim_url = build_optim_url(lcp_url)
-    preload_tag = make_preload_tag(optim_url)
+    preload_tag = make_preload_tag(lcp_url)
 
     # Собираем все preload as="image" теги на странице
     existing_preloads = page.evaluate(
@@ -65,7 +64,7 @@ def check_page_preload(page, url: str) -> dict:
         ").map(el => el.getAttribute('href'))"
     )
 
-    if optim_url in (existing_preloads or []):
+    if lcp_url in (existing_preloads or []):
         status = "preload_ok"
     elif existing_preloads:
         status = "preload_wrong"
@@ -75,7 +74,6 @@ def check_page_preload(page, url: str) -> dict:
     return {
         "status": status,
         "lcp_url": lcp_url,
-        "optim_url": optim_url,
         "preload_tag": preload_tag,
         "existing_preloads": existing_preloads or [],
     }
