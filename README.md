@@ -74,16 +74,35 @@ curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/ma
 
 ## Установка на Windows
 
-1. Установите Python: скачайте с [python.org](https://www.python.org/downloads/windows/) —
-   при установке поставьте галочку **"Add Python to PATH"**
+**Шаг 1.** Установите Python: скачайте с [python.org](https://www.python.org/downloads/windows/) —
+при установке поставьте галочку **"Add Python to PATH"**
 
-   *(На Windows 10/11 можно также найти **Python 3.12** в Microsoft Store)*
+*(На Windows 10/11 можно также найти **Python 3.12** в Microsoft Store)*
 
-2. Скачайте файл установщика: [install.bat](https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.bat)
+**Шаг 2.** Скачайте архив со скриптами:
+[tilda-core-web-vitals-main.zip](https://github.com/vadimgurov/tilda-core-web-vitals/archive/refs/heads/main.zip)
 
-3. Дважды щёлкните по скачанному `install.bat`
+**Шаг 3.** Разархивируйте в любую папку (например, на Рабочий стол).
+Появится папка `tilda-core-web-vitals-main`.
 
-> Chromium (~150 МБ) скачается автоматически при первом запуске.
+**Шаг 4.** Откройте командную строку в этой папке:
+в Проводнике откройте папку `tilda-core-web-vitals-main`, щёлкните на адресной строке вверху,
+введите `cmd` и нажмите Enter.
+
+**Шаг 5.** Установите зависимости — в открывшемся окне выполните по очереди:
+
+```
+pip install playwright requests pydantic
+playwright install chromium
+```
+
+> Chromium (~150 МБ) скачается при выполнении второй команды.
+
+**Шаг 6.** Запустите скрипт:
+
+```
+python -m tilda_vitals.cli
+```
 
 ---
 
@@ -240,11 +259,12 @@ preload для текста не применяется.
 
 ## Обновление
 
-Обновление выполняется той же командой что и установка:
+**Linux / macOS** — та же команда что и при установке:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh
 ```
 
 > Флаг `-o /tmp/install.sh` нужен чтобы обойти кэш и получить свежую версию.
-> После обновления запустится интерактивная проверка — можно прервать через Ctrl+C.
+
+**Windows** — скачайте свежий архив и распакуйте поверх старой папки (Шаги 2–3 из инструкции установки), затем повторно выполните команды из Шага 5.
