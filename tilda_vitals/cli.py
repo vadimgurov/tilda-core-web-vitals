@@ -395,6 +395,9 @@ def run_check(url: str | None) -> None:
 
 
 def main() -> None:
+    from . import __version__
+    print(f"tilda-vitals {__version__}")
+
     parser = argparse.ArgumentParser(
         prog="tilda-vitals",
         description="Улучшение LCP для сайтов на Tilda",
