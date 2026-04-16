@@ -58,3 +58,4 @@ if %errorlevel% neq 0 (
 
 "%PYTHON%" "%TEMP%\tv_install.py"
 pause
+\r
