@@ -81,7 +81,12 @@ curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/ma
 
 2. Скачайте установщик: [install.ps1](https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.ps1)
 
-3. Откройте **PowerShell** (Win + X → Windows PowerShell) в папке со скачанным файлом и выполните:
+3. Откройте **PowerShell**: нажмите **Win + R**, введите `powershell`, нажмите Enter.
+   В открывшемся окне перейдите в папку со скачанным файлом командой `cd`, например:
+   ```powershell
+   cd C:\Users\ВашеИмя\Downloads
+   ```
+   Затем выполните:
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned; .\install.ps1
