@@ -56,7 +56,7 @@ rm -f "$TMP_ZIP"
 
 # Создаём виртуальное окружение и ставим зависимости
 echo "Устанавливаем зависимости..."
-python3 -m venv "$INSTALL_DIR/venv" --upgrade-deps --quiet
+python3 -m venv "$INSTALL_DIR/venv" --upgrade-deps
 "$INSTALL_DIR/venv/bin/pip" install --quiet playwright requests pydantic
 
 # Создаём команду tilda-vitals
