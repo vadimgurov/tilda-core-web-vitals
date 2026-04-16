@@ -80,4 +80,4 @@ echo ""
 echo "Установка завершена. Запускаем..."
 echo ""
 
-exec "$BIN_DIR/tilda-vitals"
+exec "$BIN_DIR/tilda-vitals" </dev/tty
