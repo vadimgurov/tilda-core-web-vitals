@@ -28,6 +28,19 @@ _LCP_JS = """
 """
 
 
+def _trigger_lazy_load(page) -> None:
+    """
+    Скроллит страницу через JS чтобы активировать lazy-load изображений.
+    JS-скролл не считается пользовательским взаимодействием — LCP продолжает обновляться.
+    После скролла ждём networkidle чтобы lazy-load запросы завершились.
+    """
+    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+    try:
+        page.wait_for_load_state("networkidle", timeout=5_000)
+    except Exception:
+        pass
+
+
 def find_lcp_image(page, site_url: str, alias: str) -> str | None:
     """
     Открывает страницу сайта в мобильном viewport (390×844),
@@ -36,6 +49,7 @@ def find_lcp_image(page, site_url: str, alias: str) -> str | None:
     """
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto(f"{site_url}{alias}", wait_until="networkidle")
+    _trigger_lazy_load(page)
     lcp_url = page.evaluate(_LCP_JS)
     return lcp_url if lcp_url else None
 
@@ -56,6 +70,7 @@ def check_page_preload(page, url: str) -> dict:
 
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto(url, wait_until="networkidle")
+    _trigger_lazy_load(page)
 
     lcp_url = page.evaluate(_LCP_JS)
     if not lcp_url:
