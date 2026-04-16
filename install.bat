@@ -44,7 +44,7 @@ exit /b 1
 for /f "tokens=*" %%i in ('"%PYTHON%" --version') do echo %%i - OK
 
 echo Скачиваем установщик...
-"%PYTHON%" -c "import urllib.request; urllib.request.urlretrieve('https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install_helper.py', '%TEMP%\\tv_install.py')"
+"%PYTHON%" -c "import urllib.request, os; urllib.request.urlretrieve('https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install_helper.py', os.path.join(os.environ['TEMP'], 'tv_install.py'))"
 if %errorlevel% neq 0 (
     echo Ошибка при скачивании. Проверьте подключение к интернету.
     pause
