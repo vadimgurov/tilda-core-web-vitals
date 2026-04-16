@@ -7,17 +7,23 @@
 import time
 
 # JavaScript: подписывается на LCP-события с buffered=true и возвращает URL
-# последнего LCP-кандидата (или null если LCP — текстовый блок).
-# Ждём 3 секунды после networkidle чтобы собрать все кандидаты.
+# финального LCP-кандидата. Резолвится через 2 секунды после последнего изменения
+# (LCP может обновляться по мере подгрузки lazy-load контента).
+# Абсолютный таймаут — 10 секунд.
 _LCP_JS = """
     () => new Promise(resolve => {
         let lastUrl = null;
-        new PerformanceObserver(list => {
+        let debounce = null;
+        const done = () => resolve(lastUrl);
+        const obs = new PerformanceObserver(list => {
             for (const e of list.getEntries()) {
                 if (e.url) lastUrl = e.url;
             }
-        }).observe({ type: 'largest-contentful-paint', buffered: true });
-        setTimeout(() => resolve(lastUrl), 3000);
+            clearTimeout(debounce);
+            debounce = setTimeout(done, 2000);
+        });
+        obs.observe({ type: 'largest-contentful-paint', buffered: true });
+        setTimeout(done, 10000);
     })
 """
 
