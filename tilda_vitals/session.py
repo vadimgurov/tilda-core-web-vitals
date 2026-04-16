@@ -59,6 +59,7 @@ def load_session(playwright, session_path: Path):
     ctx = browser.new_context(
         user_agent=USER_AGENT,
         storage_state=str(session_path),
+        device_scale_factor=2,
     )
     ctx.add_init_script(
         "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"

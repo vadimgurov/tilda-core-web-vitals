@@ -361,7 +361,7 @@ def run_check(url: str | None) -> None:
     with sync_playwright() as p:
         b = p.chromium.launch(headless=True,
                               args=["--no-sandbox", "--disable-dev-shm-usage"])
-        ctx = b.new_context()
+        ctx = b.new_context(device_scale_factor=2)
         page = ctx.new_page()
         browser.setup_lcp_tracking(page)
 
