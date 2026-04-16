@@ -74,23 +74,14 @@ curl -fsSL https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/ma
 
 ## Установка на Windows
 
-1. Установите Python: откройте **Microsoft Store**, найдите **Python 3.12**, нажмите «Установить»
+1. Установите Python: скачайте с [python.org](https://www.python.org/downloads/windows/) —
+   при установке поставьте галочку **"Add Python to PATH"**
 
-   *(Или скачайте с [python.org](https://www.python.org/downloads/windows/) — при установке
-   поставьте галочку **"Add Python to PATH"**)*
+   *(На Windows 10/11 можно также найти **Python 3.12** в Microsoft Store)*
 
-2. Скачайте установщик: [install.ps1](https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.ps1)
+2. Скачайте файл установщика: [install.bat](https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install.bat)
 
-3. Откройте **PowerShell**: нажмите **Win + R**, введите `powershell`, нажмите Enter.
-   В открывшемся окне перейдите в папку со скачанным файлом командой `cd`, например:
-   ```powershell
-   cd C:\Users\ВашеИмя\Downloads
-   ```
-   Затем выполните:
-
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned; .\install.ps1
-```
+3. Дважды щёлкните по скачанному `install.bat`
 
 > Chromium (~150 МБ) скачается автоматически при первом запуске.
 
