@@ -1,16 +1,40 @@
-def build_optim_url(static_url: str) -> str:
+def build_optim_url(url: str) -> str:
     """
-    Преобразует URL изображения Tilda CDN для оптимизации:
-      static.tildacdn.com/stor.../file.jpg
-        → optim.tildacdn.com/stor.../-/resize/400x400/-/format/webp/file.jpg.webp
+    Строит канонический preload URL для изображения Tilda CDN (400x400, webp).
 
-    Для внешних URL (не static.tildacdn.com) возвращает как есть.
+    Принимает любой вариант URL:
+      - static.tildacdn.com/stor.../file.jpg
+      - optim.tildacdn.com/stor.../-/resize/240x240/-/format/webp/file.jpg.webp
+    Оба дают одинаковый результат:
+      → optim.tildacdn.com/stor.../-/resize/400x400/-/format/webp/file.jpg.webp
+
+    Для URL не с tildacdn.com возвращает как есть.
     """
-    if "static.tildacdn.com" not in static_url:
-        return static_url
-    url = static_url.replace("static.tildacdn.com", "optim.tildacdn.com")
-    idx = url.rfind("/")
-    return url[:idx] + "/-/resize/400x400/-/format/webp/" + url[idx + 1:] + ".webp"
+    if "tildacdn.com" not in url:
+        return url
+
+    # Убираем протокол и хост, получаем путь начиная со stor...
+    for host in ("static.tildacdn.com/", "optim.tildacdn.com/"):
+        if host in url:
+            path = url.split(host, 1)[1]
+            break
+    else:
+        return url
+
+    # path вида: stor{id}/...возможные трансформации.../filename.ext[.webp]
+    # Разбиваем на stor-id и имя файла (последний сегмент)
+    parts = path.split("/")
+    stor_id = parts[0]
+    filename = parts[-1]
+
+    # Убираем .webp суффикс если он есть (optim добавляет его к имени)
+    if filename.endswith(".webp"):
+        filename = filename[:-5]
+
+    return (
+        f"https://optim.tildacdn.com/{stor_id}"
+        f"/-/resize/400x400/-/format/webp/{filename}.webp"
+    )
 
 
 def make_preload_tag(optim_url: str) -> str:
