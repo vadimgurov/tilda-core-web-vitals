@@ -372,7 +372,7 @@ def run_check(url: str | None) -> None:
                         break
                     if not raw:
                         continue
-                    if not raw.startswith("http"):
+                    if not raw.startswith(("http://", "https://")):
                         raw = "https://" + raw
                     print(f"\nПроверяем {raw}...\n")
                     try:
