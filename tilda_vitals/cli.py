@@ -151,123 +151,156 @@ def _do_fix(cfg: Config, args, ctx) -> None:
                 print(f"  {v}")
             sys.exit(1)
 
-    # ── Фаза проверки (dry-run для всех) ──
-    print("Проверяем страницы:")
-    needs_update: list[dict] = []
-    no_image_count = already_ok_count = 0
+    if args.apply:
+        _run_apply(cfg, args, page, store_pages)
+    else:
+        _run_preview(cfg, args, page, store_pages)
+
+    page.close()
+
+
+def _check_page(cfg, page, page_info) -> dict:
+    """Проверяет страницу и возвращает dict с результатом."""
+    alias = "/" + page_info.get("alias", "").strip("/")
+
+    static_url = browser.find_lcp_image(page, cfg.site_url, alias)
+    if not static_url:
+        return {"status": "no_image", "alias": alias}
+
+    optim_url = fixes.build_optim_url(static_url)
+    browser.open_head_editor(page, cfg.project_id, str(page_info["id"]))
+    current_code = browser.read_head_code(page)
+
+    if optim_url in current_code:
+        return {"status": "ok", "alias": alias}
+
+    return {
+        "status": "needs_update",
+        "alias": alias,
+        "static_url": static_url,
+        "optim_url": optim_url,
+        "current_code": current_code,
+        "page_info": page_info,
+    }
+
+
+def _apply_update(cfg, args, page, item) -> bool:
+    """Применяет обновление к одной странице. Возвращает True при успехе."""
+    page_id = str(item["page_info"]["id"])
+    preload_tag = fixes.make_preload_tag(item["optim_url"])
+
+    print(f"    → изображение: {item['static_url']}")
+    print(f"    → preload URL: {item['optim_url']}")
+
+    browser.open_head_editor(page, cfg.project_id, page_id)
+    current_code = browser.read_head_code(page)
+    new_code = fixes.patch_head_code(current_code, preload_tag)
+    browser.write_head_code(page, new_code)
+
+    if not args.no_publish:
+        print(f"    → публикуем...", end=" ", flush=True)
+        result = browser.publish_page(page, cfg.project_id, page_id)
+        pub_ok = result and ("publishonepage" in result or "OK" in result)
+        print("✓" if pub_ok else f"(ответ: {result!r})")
+
+    print(f"    ✓ обновлено\n")
+    return True
+
+
+def _run_apply(cfg, args, page, store_pages) -> None:
+    """Одним проходом: проверяет и сразу обновляет."""
+    print("Проверяем и обновляем страницы:")
+    updated = already_ok = no_image = errors = 0
 
     for page_info in store_pages:
         alias = "/" + page_info.get("alias", "").strip("/")
         print(f"  {alias:<30}", end=" ", flush=True)
 
         try:
-            static_url = browser.find_lcp_image(page, cfg.site_url, alias)
+            result = _check_page(cfg, page, page_info)
         except Exception as e:
             print(f"ОШИБКА: {e}")
+            errors += 1
             continue
 
-        if not static_url:
-            print("— нет изображений товаров, пропуск")
-            no_image_count += 1
-            time.sleep(0.5)
-            continue
-
-        optim_url = fixes.build_optim_url(static_url)
-
-        # Проверяем текущий HEAD-код
-        try:
-            browser.open_head_editor(page, cfg.project_id, str(page_info["id"]))
-            current_code = browser.read_head_code(page)
-        except Exception as e:
-            print(f"ОШИБКА (редактор): {e}")
-            continue
-
-        if optim_url in current_code:
+        if result["status"] == "no_image":
+            print("— нет товаров, пропуск")
+            no_image += 1
+        elif result["status"] == "ok":
             print("✓ уже настроено")
-            already_ok_count += 1
+            already_ok += 1
         else:
-            print("⚠ нужно обновить preload")
-            needs_update.append({
-                "page_info": page_info,
-                "alias": alias,
-                "static_url": static_url,
-                "optim_url": optim_url,
-                "current_code": current_code,
-            })
+            print("→ обновляем...")
+            try:
+                _apply_update(cfg, args, page, result)
+                updated += 1
+            except Exception as e:
+                print(f"    ОШИБКА: {e}\n")
+                errors += 1
 
         time.sleep(0.5)
 
-    # ── Итог проверки ──
-    print()
-    if not needs_update:
-        print(f"Всё в порядке: все страницы уже настроены ({already_ok_count} ✓, {no_image_count} без товаров).")
-        page.close()
-        return
+    print(
+        f"\nИтого: {updated} обновлено, {already_ok} уже ок, "
+        f"{no_image} без товаров, {errors} ошибок"
+    )
 
-    print(f"Проверка завершена: {already_ok_count} уже настроено, {no_image_count} без товаров, {len(needs_update)} требуют обновления.")
 
-    # ── Подтверждение ──
-    if not args.apply:
-        answer = input("\nПрименить изменения? [y/N]: ").strip().lower()
-        if answer not in ("y", "д", "да", "yes"):
-            print("Отменено.")
-            page.close()
-            return
+def _run_preview(cfg, args, page, store_pages) -> None:
+    """Сначала проверяет все страницы, показывает список, потом спрашивает подтверждение."""
+    print("Проверяем страницы:")
+    needs_update: list[dict] = []
+    already_ok = no_image = errors = 0
 
-    # ── Применяем обновления ──
-    print(f"\n{'─' * 50}")
-    print(f"Обновляем {len(needs_update)} страниц...")
-    print(f"{'─' * 50}\n")
-    updated = errors = 0
-
-    for i, item in enumerate(needs_update, 1):
-        page_info = item["page_info"]
-        alias = item["alias"]
-        page_id = str(page_info["id"])
-
-        print(f"  [{i}/{len(needs_update)}] {alias}")
-        print(f"    → Нашли главное изображение:")
-        print(f"        {item['static_url']}")
-
-        optim_url = item["optim_url"]
-        print(f"    → Преобразуем URL для оптимизации:")
-        print(f"        {optim_url}")
-
-        preload_tag = fixes.make_preload_tag(optim_url)
-        print(f"    → Вставляем в HEAD страницы:")
-        print(f"        {preload_tag}")
+    for page_info in store_pages:
+        alias = "/" + page_info.get("alias", "").strip("/")
+        print(f"  {alias:<30}", end=" ", flush=True)
 
         try:
-            # Открываем редактор заново (страница могла устареть)
-            browser.open_head_editor(page, cfg.project_id, page_id)
-            current_code = browser.read_head_code(page)
-            new_code = fixes.patch_head_code(current_code, preload_tag)
-            browser.write_head_code(page, new_code)
+            result = _check_page(cfg, page, page_info)
+        except Exception as e:
+            print(f"ОШИБКА: {e}")
+            errors += 1
+            continue
 
-            if not args.no_publish:
-                print(f"    → Публикуем страницу...", end=" ", flush=True)
-                result = browser.publish_page(page, cfg.project_id, page_id)
-                pub_ok = result and ("publishonepage" in result or "OK" in result)
-                if pub_ok:
-                    print("✓")
-                else:
-                    print(f"(ответ сервера: {result!r})")
+        if result["status"] == "no_image":
+            print("— нет товаров, пропуск")
+            no_image += 1
+        elif result["status"] == "ok":
+            print("✓ уже настроено")
+            already_ok += 1
+        else:
+            print("⚠ нужно обновить preload")
+            needs_update.append(result)
 
-            print(f"    ✓ Готово\n")
+        time.sleep(0.5)
+
+    print()
+    if not needs_update:
+        print(f"Всё в порядке: {already_ok} уже настроено, {no_image} без товаров.")
+        return
+
+    print(f"Проверка завершена: {already_ok} уже ок, {no_image} без товаров, {len(needs_update)} требуют обновления.")
+
+    answer = input("\nПрименить изменения? [y/N]: ").strip().lower()
+    if answer not in ("y", "д", "да", "yes"):
+        print("Отменено.")
+        return
+
+    print()
+    updated = 0
+    for item in needs_update:
+        print(f"  {item['alias']}")
+        try:
+            _apply_update(cfg, args, page, item)
             updated += 1
-
         except Exception as e:
             print(f"    ОШИБКА: {e}\n")
             errors += 1
 
-        time.sleep(0.8)
-
-    page.close()
-
-    # ── Итог ──
     print(
-        f"Итого: {updated} обновлено, {already_ok_count} уже ок, "
-        f"{no_image_count} без изображений, {errors} ошибок"
+        f"Итого: {updated} обновлено, {already_ok} уже ок, "
+        f"{no_image} без товаров, {errors} ошибок"
     )
 
 
