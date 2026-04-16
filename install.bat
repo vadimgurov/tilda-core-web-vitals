@@ -1,22 +1,18 @@
 @echo off
-chcp 65001 >nul
 echo.
-echo === Установка tilda-vitals ===
+echo === tilda-vitals installer ===
 echo.
 
 set PYTHON=
 
-REM Пробуем python из PATH
-python --version >nul 2>&1
+python --version 1>nul 2>nul
 if %errorlevel% equ 0 set PYTHON=python
 
-REM Пробуем py launcher
 if not defined PYTHON (
-    py --version >nul 2>&1
+    py --version 1>nul 2>nul
     if %errorlevel% equ 0 set PYTHON=py
 )
 
-REM Ищем в типичных папках
 if not defined PYTHON (
     for %%v in (313 312 311 310) do (
         if not defined PYTHON (
@@ -37,10 +33,10 @@ if not defined PYTHON (
 )
 
 if not defined PYTHON (
-    echo Ошибка: Python не найден.
+    echo ERROR: Python not found.
     echo.
-    echo Скачайте Python с https://python.org/downloads
-    echo При установке поставьте галочку "Add Python to PATH"
+    echo Download from https://python.org/downloads
+    echo During install check "Add Python to PATH"
     echo.
     pause
     goto :eof
@@ -48,14 +44,13 @@ if not defined PYTHON (
 
 for /f "tokens=*" %%i in ('"%PYTHON%" --version 2^>^&1') do echo %%i - OK
 
-echo Скачиваем установщик...
-"%PYTHON%" -c "import urllib.request, os; urllib.request.urlretrieve('https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install_helper.py', os.path.join(os.environ['TEMP'], 'tv_install.py'))"
+echo Downloading installer...
+"%PYTHON%" -c "import urllib.request, ssl, os; ctx = ssl._create_unverified_context(); req = urllib.request.urlopen('https://raw.githubusercontent.com/vadimgurov/tilda-core-web-vitals/main/install_helper.py', context=ctx); open(os.path.join(os.environ['TEMP'], 'tv_install.py'), 'wb').write(req.read())"
 if %errorlevel% neq 0 (
-    echo Ошибка при скачивании. Проверьте подключение к интернету.
+    echo Download failed. Check internet connection.
     pause
     goto :eof
 )
 
 "%PYTHON%" "%TEMP%\tv_install.py"
 pause
-\r

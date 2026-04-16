@@ -19,7 +19,11 @@ TMP_DIR = os.environ.get("TEMP", os.path.join(os.path.expanduser("~"), "AppData"
 def download_and_extract():
     print("Скачиваем скрипты...")
     tmp_zip = os.path.join(TMP_DIR, "tv.zip")
-    urllib.request.urlretrieve(GITHUB_ZIP, tmp_zip)
+    import ssl
+    ctx = ssl._create_unverified_context()
+    with urllib.request.urlopen(GITHUB_ZIP, context=ctx) as resp:
+        with open(tmp_zip, "wb") as f:
+            f.write(resp.read())
 
     print("Распаковываем...")
     tmp_ext = os.path.join(TMP_DIR, "tv-ext")
