@@ -118,16 +118,29 @@ def run_fix(cfg: Config, args) -> None:
             sys.exit(1)
 
         try:
-            _do_fix(cfg, args, ctx)
+            _do_fix(cfg, args, ctx, p)
         except KeyboardInterrupt:
             print("\nПрервано.")
         finally:
             ctx.close()
 
 
-def _do_fix(cfg: Config, args, ctx) -> None:
+def _do_fix(cfg: Config, args, ctx, playwright_instance) -> None:
+    from .session import USER_AGENT
+
+    # Страница из сессионного контекста (dpr=2) — для редактора Tilda + мобильного LCP
     page = ctx.new_page()
     browser.setup_lcp_tracking(page)
+
+    # Отдельный браузер (dpr=1) — только для десктопного LCP
+    b_desktop = playwright_instance.chromium.launch(
+        headless=True,
+        args=["--no-sandbox", "--disable-dev-shm-usage",
+              "--disable-blink-features=AutomationControlled"],
+    )
+    ctx_desktop = b_desktop.new_context(user_agent=USER_AGENT)
+    page_desktop = ctx_desktop.new_page()
+    browser.setup_lcp_tracking(page_desktop)
 
     # ── Получаем список страниц ──
     print("Получаем список страниц из Tilda API...", end=" ", flush=True)
@@ -135,6 +148,7 @@ def _do_fix(cfg: Config, args, ctx) -> None:
         all_pages = api.get_pages(cfg)
     except RuntimeError as e:
         print(f"\nОшибка: {e}")
+        b_desktop.close()
         sys.exit(1)
 
     store_pages = [pg for pg in all_pages if pg.get("alias", "").strip("/")]
@@ -150,36 +164,46 @@ def _do_fix(cfg: Config, args, ctx) -> None:
             print("Доступные страницы:")
             for v in valid:
                 print(f"  {v}")
+            b_desktop.close()
             sys.exit(1)
 
-    if args.preview:
-        _run_preview(cfg, args, page, store_pages)
-    else:
-        _run_apply(cfg, args, page, store_pages)
+    try:
+        if args.preview:
+            _run_preview(cfg, args, page, page_desktop, store_pages)
+        else:
+            _run_apply(cfg, args, page, page_desktop, store_pages)
+    finally:
+        b_desktop.close()
 
     page.close()
 
 
-def _check_page(cfg, page, page_info) -> dict:
-    """Проверяет страницу и возвращает dict с результатом."""
+def _check_page(cfg, page_mobile, page_desktop, page_info) -> dict:
+    """Проверяет страницу на мобильном и десктопном viewport, возвращает dict с результатом."""
     alias = "/" + page_info.get("alias", "").strip("/")
 
-    lcp_url = browser.find_lcp_image(page, cfg.site_url, alias)
-    if not lcp_url:
+    mobile_url = browser.find_lcp_image(page_mobile, cfg.site_url, alias, 390, 844)
+    desktop_url = browser.find_lcp_image(page_desktop, cfg.site_url, alias, 1280, 800)
+
+    if not mobile_url and not desktop_url:
         return {"status": "no_image", "alias": alias}
 
-    preload_tag = fixes.make_preload_tag(lcp_url)
-    browser.open_head_editor(page, cfg.project_id, str(page_info["id"]))
-    current_code = browser.read_head_code(page)
+    preload_tags = fixes.make_preload_tags(mobile_url, desktop_url)
 
-    if lcp_url in current_code:
+    browser.open_head_editor(page_mobile, cfg.project_id, str(page_info["id"]))
+    current_code = browser.read_head_code(page_mobile)
+
+    # Все ожидаемые строки preload уже в HEAD?
+    expected_lines = [l for l in preload_tags.splitlines() if l.strip()]
+    if all(line in current_code for line in expected_lines):
         return {"status": "ok", "alias": alias}
 
     return {
         "status": "needs_update",
         "alias": alias,
-        "lcp_url": lcp_url,
-        "preload_tag": preload_tag,
+        "mobile_url": mobile_url,
+        "desktop_url": desktop_url,
+        "preload_tags": preload_tags,
         "current_code": current_code,
         "page_info": page_info,
     }
@@ -188,14 +212,19 @@ def _check_page(cfg, page, page_info) -> dict:
 def _apply_update(cfg, args, page, item) -> bool:
     """Применяет обновление к одной странице. Возвращает True при успехе."""
     page_id = str(item["page_info"]["id"])
-    preload_tag = item["preload_tag"]
+    preload_tags = item["preload_tags"]
 
-    print(f"    → LCP-изображение: {item['lcp_url']}")
-    print(f"    → вставляем в HEAD: {preload_tag}")
+    if item.get("mobile_url"):
+        print(f"    → LCP мобильный:  {item['mobile_url']}")
+    if item.get("desktop_url"):
+        print(f"    → LCP десктоп:    {item['desktop_url']}")
+    for line in preload_tags.splitlines():
+        if line.strip():
+            print(f"    → вставляем в HEAD: {line}")
 
     browser.open_head_editor(page, cfg.project_id, page_id)
     current_code = browser.read_head_code(page)
-    new_code = fixes.patch_head_code(current_code, preload_tag)
+    new_code = fixes.patch_head_code(current_code, preload_tags)
     browser.write_head_code(page, new_code)
 
     if not args.no_publish:
@@ -208,7 +237,7 @@ def _apply_update(cfg, args, page, item) -> bool:
     return True
 
 
-def _run_apply(cfg, args, page, store_pages) -> None:
+def _run_apply(cfg, args, page, page_desktop, store_pages) -> None:
     """Одним проходом: проверяет и сразу обновляет."""
     total = len(store_pages)
     print("Проверяем и обновляем страницы:")
@@ -220,7 +249,7 @@ def _run_apply(cfg, args, page, store_pages) -> None:
         print(f"  [{i}/{total}] {full_url}", end=" ", flush=True)
 
         try:
-            result = _check_page(cfg, page, page_info)
+            result = _check_page(cfg, page, page_desktop, page_info)
         except Exception as e:
             print(f"ОШИБКА: {e}")
             errors += 1
@@ -249,7 +278,7 @@ def _run_apply(cfg, args, page, store_pages) -> None:
     )
 
 
-def _run_preview(cfg, args, page, store_pages) -> None:
+def _run_preview(cfg, args, page, page_desktop, store_pages) -> None:
     """Сначала проверяет все страницы, показывает список, потом спрашивает подтверждение."""
     total = len(store_pages)
     print("Проверяем страницы:")
@@ -262,7 +291,7 @@ def _run_preview(cfg, args, page, store_pages) -> None:
         print(f"  [{i}/{total}] {full_url}", end=" ", flush=True)
 
         try:
-            result = _check_page(cfg, page, page_info)
+            result = _check_page(cfg, page, page_desktop, page_info)
         except Exception as e:
             print(f"ОШИБКА: {e}")
             errors += 1
@@ -322,31 +351,39 @@ def _print_check_result(result: dict) -> None:
         print("Preload для текстовых блоков не применяется.")
         return
 
-    print(f"LCP-изображение:")
-    print(f"  {result['lcp_url']}\n")
+    if result.get("mobile_url"):
+        print(f"LCP-изображение (мобильный):")
+        print(f"  {result['mobile_url']}")
+    if result.get("desktop_url") and result.get("desktop_url") != result.get("mobile_url"):
+        print(f"LCP-изображение (десктоп):")
+        print(f"  {result['desktop_url']}")
+    print()
+
+    preload_tags = result.get("preload_tags") or result.get("preload_tag", "")
 
     if status == "preload_ok":
         print("Preload тег: ЕСТЬ ✓")
-        print(f"  {result['lcp_url']}")
 
     elif status == "preload_wrong":
         print("Preload тег: ЕСТЬ, но указывает на другое изображение")
         print("\nТекущий preload на странице:")
         for href in result["existing_preloads"]:
             print(f"  {href}")
-        print(f"\nРеальный LCP (измерено браузером):")
-        print(f"  {result['lcp_url']}")
-        print(f"\nРекомендуемый тег для LCP:")
-        print(f"  {result['preload_tag']}")
+        print(f"\nРекомендуемые теги для LCP:")
+        for line in preload_tags.splitlines():
+            if line.strip():
+                print(f"  {line}")
         print("\nКак добавить в Tilda:")
-        print("  Настройки страницы → SEO → Дополнительный код HEAD → вставьте тег выше.")
+        print("  Настройки страницы → SEO → Дополнительный код HEAD → замените теги выше.")
 
     else:  # preload_missing
         print("Preload тег: НЕТ ✗")
-        print("\nРекомендуемый тег для добавления в HEAD страницы:")
-        print(f"  {result['preload_tag']}")
+        print("\nРекомендуемые теги для добавления в HEAD страницы:")
+        for line in preload_tags.splitlines():
+            if line.strip():
+                print(f"  {line}")
         print("\nКак добавить в Tilda:")
-        print("  Настройки страницы → SEO → Дополнительный код HEAD → вставьте тег выше.")
+        print("  Настройки страницы → SEO → Дополнительный код HEAD → вставьте теги выше.")
 
 
 def run_check(url: str | None) -> None:
@@ -355,20 +392,24 @@ def run_check(url: str | None) -> None:
     Если нет — запускает интерактивный цикл: спрашивает URL снова и снова до Ctrl+C.
     """
     from playwright.sync_api import sync_playwright
+    from .session import USER_AGENT
 
     _ensure_chromium()
 
     with sync_playwright() as p:
         b = p.chromium.launch(headless=True,
                               args=["--no-sandbox", "--disable-dev-shm-usage"])
-        ctx = b.new_context(device_scale_factor=2)
-        page = ctx.new_page()
-        browser.setup_lcp_tracking(page)
+        ctx_mobile = b.new_context(user_agent=USER_AGENT, device_scale_factor=2)
+        ctx_desktop = b.new_context(user_agent=USER_AGENT)
+        page_mobile = ctx_mobile.new_page()
+        page_desktop = ctx_desktop.new_page()
+        browser.setup_lcp_tracking(page_mobile)
+        browser.setup_lcp_tracking(page_desktop)
 
         try:
             if url:
                 print(f"\nПроверяем {url}...\n")
-                result = browser.check_page_preload(page, url)
+                result = browser.check_page_preload(page_mobile, url, page_desktop)
                 _print_check_result(result)
             else:
                 print("\nПроверка страниц на наличие preload.")
@@ -384,7 +425,7 @@ def run_check(url: str | None) -> None:
                         raw = "https://" + raw
                     print(f"\nПроверяем {raw}...\n")
                     try:
-                        result = browser.check_page_preload(page, raw)
+                        result = browser.check_page_preload(page_mobile, raw, page_desktop)
                         _print_check_result(result)
                     except Exception as e:
                         print(f"Ошибка: {e}")

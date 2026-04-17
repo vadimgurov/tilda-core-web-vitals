@@ -23,13 +23,16 @@ def setup_lcp_tracking(page) -> None:
     page.add_init_script(_LCP_INIT_SCRIPT)
 
 
-def find_lcp_image(page, site_url: str, alias: str) -> str | None:
+def find_lcp_image(page, site_url: str, alias: str,
+                   width: int = 390, height: int = 844) -> str | None:
     """
-    Открывает страницу сайта в мобильном viewport (390×844),
+    Открывает страницу сайта в заданном viewport,
     измеряет LCP через PerformanceObserver и возвращает URL LCP-изображения,
     или None если LCP-элемент не является изображением.
+
+    По умолчанию — мобильный viewport (390×844).
     """
-    page.set_viewport_size({"width": 390, "height": 844})
+    page.set_viewport_size({"width": width, "height": height})
     page.goto(f"{site_url}{alias}", wait_until="networkidle")
     # Небольшая пауза — дать браузеру зафиксировать финальный LCP после networkidle
     page.wait_for_timeout(1000)
@@ -37,31 +40,43 @@ def find_lcp_image(page, site_url: str, alias: str) -> str | None:
     return lcp_url if lcp_url else None
 
 
-def check_page_preload(page, url: str) -> dict:
+def check_page_preload(page_mobile, url: str, page_desktop=None) -> dict:
     """
     Открывает публичную страницу, измеряет LCP через PerformanceObserver
-    и проверяет наличие preload-тега для LCP-изображения.
+    и проверяет наличие preload-тегов для LCP-изображений.
+
+    page_mobile — страница с device_scale_factor=2, viewport 390×844.
+    page_desktop — опционально, страница с device_scale_factor=1, viewport 1280×800.
 
     Возвращает dict:
       status: "no_lcp_image" | "preload_ok" | "preload_missing" | "preload_wrong"
-      lcp_url:  URL реального LCP-изображения
-      optim_url:  рекомендуемый оптимизированный URL
-      preload_tag: рекомендуемый тег для вставки в HEAD
+      mobile_url:  URL LCP-изображения на мобильном
+      desktop_url: URL LCP-изображения на десктопе (или None)
+      preload_tags: рекомендуемые теги для вставки в HEAD
       existing_preloads: список href всех preload-тегов с as="image" на странице
     """
-    from .fixes import make_preload_tag
+    import re
+    from .fixes import make_preload_tags
 
-    page.set_viewport_size({"width": 390, "height": 844})
-    page.goto(url, wait_until="networkidle")
-    page.wait_for_timeout(1000)
-    lcp_url = page.evaluate("() => window.__lcpUrl")
-    if not lcp_url:
+    page_mobile.set_viewport_size({"width": 390, "height": 844})
+    page_mobile.goto(url, wait_until="networkidle")
+    page_mobile.wait_for_timeout(1000)
+    mobile_url = page_mobile.evaluate("() => window.__lcpUrl") or None
+
+    desktop_url = None
+    if page_desktop is not None:
+        page_desktop.set_viewport_size({"width": 1280, "height": 800})
+        page_desktop.goto(url, wait_until="networkidle")
+        page_desktop.wait_for_timeout(1000)
+        desktop_url = page_desktop.evaluate("() => window.__lcpUrl") or None
+
+    if not mobile_url and not desktop_url:
         return {"status": "no_lcp_image"}
 
-    preload_tag = make_preload_tag(lcp_url)
+    preload_tags = make_preload_tags(mobile_url, desktop_url)
 
-    # Собираем все preload as="image" теги на странице
-    existing_preloads = page.evaluate(
+    # Собираем все preload as="image" теги на странице (проверяем по мобильной версии)
+    existing_preloads = page_mobile.evaluate(
         "() => Array.from("
         "  document.querySelectorAll('link[rel=\"preload\"][as=\"image\"]')"
         ").map(el => el.getAttribute('href'))"
@@ -73,10 +88,12 @@ def check_page_preload(page, url: str) -> dict:
         parsed = urlparse(u)
         return parsed.path + ("?" + parsed.query if parsed.query else "")
 
-    lcp_path = url_path(lcp_url)
-    preload_paths = [url_path(u) for u in (existing_preloads or [])]
+    # Ожидаемые href из сгенерированных preload-тегов
+    expected_hrefs = re.findall(r'href="([^"]+)"', preload_tags)
+    expected_paths = [url_path(h) for h in expected_hrefs]
+    existing_paths = [url_path(u) for u in (existing_preloads or [])]
 
-    if lcp_path in preload_paths:
+    if expected_paths and all(p in existing_paths for p in expected_paths):
         status = "preload_ok"
     elif existing_preloads:
         status = "preload_wrong"
@@ -85,8 +102,11 @@ def check_page_preload(page, url: str) -> dict:
 
     return {
         "status": status,
-        "lcp_url": lcp_url,
-        "preload_tag": preload_tag,
+        "mobile_url": mobile_url,
+        "desktop_url": desktop_url,
+        "lcp_url": mobile_url or desktop_url,  # для обратной совместимости
+        "preload_tags": preload_tags,
+        "preload_tag": preload_tags,  # для обратной совместимости
         "existing_preloads": existing_preloads or [],
     }
 
