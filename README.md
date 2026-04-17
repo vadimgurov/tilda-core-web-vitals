@@ -204,7 +204,7 @@ tilda-vitals config
 **Зачем нужны ключи и вход в браузер**
 
 API-ключи нужны чтобы получить список страниц сайта. Вход в браузер нужен чтобы скрипт мог
-открыть редактор HEAD-кода в Tilda и вставить туда preload-тег — Tilda не даёт делать это
+открыть редактор HEAD-кода в Tilda и вставить туда preload-теги — Tilda не даёт делать это
 через API, только через интерфейс редактора.
 
 Ключи и сессия хранятся только на вашем компьютере в `~/.tilda-vitals/`. Скрипт не отправляет
@@ -222,10 +222,10 @@ tilda-vitals
 Получаем список страниц из Tilda API... (96 страниц)
 
 Проверяем и обновляем страницы:
-  [1/96] /contacty                   — LCP не изображение, пропуск
-  [2/96] /bukety                     ✓ уже настроено
-  [3/96] /nedorogie-bukety           ✓ уже настроено
-  [4/96] /suhocvety                  → обновляем...
+  [1/96] https://myflowers.ru/contacty       — LCP не изображение, пропуск
+  [2/96] https://myflowers.ru/bukety         ✓ уже настроено
+  [3/96] https://myflowers.ru/nedorogie-bukety ✓ уже настроено
+  [4/96] https://myflowers.ru/suhocvety      → обновляем...
     → LCP мобильный:  https://optim.tildacdn.com/stor3f2a.../-/resize/400x400/-/format/webp/roses.jpg.webp
     → LCP десктоп:    https://optim.tildacdn.com/stor3f2a.../-/cover/432x475/center/center/-/format/webp/roses.jpg.webp
     → вставляем в HEAD: <link rel="preload" as="image" fetchpriority="high" media="(max-width: 959px)" href="https://optim.tildacdn.com/stor3f2a.../-/resize/400x400/-/format/webp/roses.jpg.webp">
@@ -299,7 +299,7 @@ new PerformanceObserver(list => {
 
 Это тот же механизм, который используют Google Lighthouse и PageSpeed Insights — браузер сам
 определяет самый крупный элемент на экране. Скрипт берёт последнего кандидата и именно для него
-строит preload-тег.
+строит preload-теги.
 
 Если LCP-элемент является текстовым блоком (без изображения) — страница пропускается,
 preload для текста не применяется.
