@@ -28,6 +28,33 @@ def make_preload_tags(mobile_url: str | None, desktop_url: str | None) -> str:
     return "\n".join(tags)
 
 
+def _preload_key(tag: str) -> tuple[str, str]:
+    """
+    Извлекает семантический ключ preload-тега: (href, media).
+    Используется для сравнения тегов независимо от порядка атрибутов и кавычек.
+    """
+    import re
+    href_m = re.search(r'\bhref=["\']([^"\']+)["\']', tag)
+    media_m = re.search(r'\bmedia=["\']([^"\']+)["\']', tag)
+    return (href_m.group(1) if href_m else "", media_m.group(1) if media_m else "")
+
+
+def preloads_already_present(preload_tags: str, head_code: str) -> bool:
+    """
+    Возвращает True если все preload-теги из preload_tags семантически присутствуют
+    в head_code — сравнивает по href и media, игнорируя порядок атрибутов и кавычки.
+    """
+    expected = {_preload_key(line) for line in preload_tags.splitlines() if line.strip()}
+    if not expected:
+        return False
+    existing = {
+        _preload_key(line)
+        for line in head_code.splitlines()
+        if "preload" in line and "image" in line
+    }
+    return expected.issubset(existing)
+
+
 def _is_our_preload(line: str) -> bool:
     """
     Возвращает True если строка — preload-тег, созданный этой утилитой.

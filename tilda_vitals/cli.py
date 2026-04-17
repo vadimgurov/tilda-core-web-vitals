@@ -193,9 +193,8 @@ def _check_page(cfg, page_mobile, page_desktop, page_info) -> dict:
     browser.open_head_editor(page_mobile, cfg.project_id, str(page_info["id"]))
     current_code = browser.read_head_code(page_mobile)
 
-    # Все ожидаемые строки preload уже в HEAD?
-    expected_lines = [l for l in preload_tags.splitlines() if l.strip()]
-    if all(line in current_code for line in expected_lines):
+    # Все ожидаемые preload уже в HEAD? (семантическое сравнение по href+media)
+    if fixes.preloads_already_present(preload_tags, current_code):
         return {"status": "ok", "alias": alias}
 
     return {
