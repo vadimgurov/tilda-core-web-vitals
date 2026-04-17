@@ -58,6 +58,7 @@ rm -f "$TMP_ZIP"
 echo "Устанавливаем зависимости..."
 python3 -m venv "$INSTALL_DIR/venv" --upgrade-deps
 "$INSTALL_DIR/venv/bin/pip" install --quiet playwright requests pydantic
+"$INSTALL_DIR/venv/bin/playwright" install chromium
 
 # Создаём команду tilda-vitals
 mkdir -p "$BIN_DIR"
