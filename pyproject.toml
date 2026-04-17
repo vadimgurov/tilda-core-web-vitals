@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tilda-vitals"
+version = "2026.04.16.9"
+description = "Утилита для улучшения LCP на сайтах Tilda"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "playwright>=1.40",
+    "requests>=2.31",
+    "pydantic>=2.0",
+]
+
+[project.scripts]
+tilda-vitals = "tilda_vitals.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tilda_vitals*"]
