@@ -28,18 +28,29 @@ def make_preload_tags(mobile_url: str | None, desktop_url: str | None) -> str:
     return "\n".join(tags)
 
 
+def _is_our_preload(line: str) -> bool:
+    """
+    Возвращает True если строка — preload-тег, созданный этой утилитой.
+    Признак: rel="preload" + as="image" + fetchpriority="high" + tildacdn.com.
+    Ручные preload-теги пользователя без fetchpriority="high" не затрагиваются.
+    """
+    return (
+        ('rel="preload"' in line or "rel='preload'" in line)
+        and ('as="image"' in line or "as='image'" in line)
+        and ('fetchpriority="high"' in line or "fetchpriority='high'" in line)
+        and "tildacdn.com" in line
+    )
+
+
 def patch_head_code(current_code: str, new_preloads: str) -> str:
     """
-    Убирает существующие preload-теги для tildacdn.com и добавляет новые в начало.
+    Убирает только те preload-теги, которые были созданы этой утилитой,
+    и добавляет новые в начало. Ручные preload-теги пользователя сохраняются.
     new_preloads может содержать одну или несколько строк.
-    Все остальные теги HEAD сохраняются без изменений.
     """
     lines = [
         line for line in current_code.splitlines()
-        if not (
-            ('rel="preload"' in line or "rel='preload'" in line)
-            and "tildacdn.com" in line
-        )
+        if not _is_our_preload(line)
     ]
     rest = "\n".join(lines).strip()
     if new_preloads:
