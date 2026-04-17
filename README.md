@@ -66,12 +66,18 @@ Tilda загружает изображения товаров через JavaSc
 | Начало загрузки изображения | ~1540 мс | ~13 мс |
 | Ускорение | | **в 150 раз быстрее** |
 
-Скрипт добавляет в код каждой страницы одну строку — подсказку для браузера загрузить
-изображение немедленно, не дожидаясь JavaScript:
+Скрипт добавляет в код каждой страницы один или два тега — подсказки для браузера загрузить
+изображение немедленно, не дожидаясь JavaScript. Мобильные и десктопные устройства получают
+разные размеры изображений, поэтому для каждого варианта свой тег:
 
 ```html
-<link rel="preload" as="image" fetchpriority="high" href="...">
+<!-- для мобильных устройств (до 959px) -->
+<link rel="preload" as="image" fetchpriority="high" media="(max-width: 959px)" href="...">
+<!-- для десктопа (от 960px) -->
+<link rel="preload" as="image" fetchpriority="high" media="(min-width: 960px)" href="...">
 ```
+
+Браузер активирует только тот тег, который соответствует текущей ширине экрана.
 
 ---
 
@@ -154,16 +160,19 @@ URL > https://buy-wonder.com/catalog
 
 Проверяем https://buy-wonder.com/catalog...
 
-LCP-изображение:
-  https://optim.tildacdn.com/stor6463-.../-/resize/240x240/-/format/webp/e35360f2...png.webp
+LCP-изображение (мобильный):
+  https://optim.tildacdn.com/stor6463-.../-/resize/400x400/-/format/webp/e35360f2...png.webp
+LCP-изображение (десктоп):
+  https://optim.tildacdn.com/stor6463-.../-/cover/432x475/center/center/-/format/webp/e35360f2...png.webp
 
 Preload тег: НЕТ ✗
 
-Рекомендуемый тег для добавления в HEAD страницы:
-  <link rel="preload" as="image" fetchpriority="high" href="https://optim.tildacdn.com/stor6463-.../-/resize/240x240/-/format/webp/e35360f2...png.webp">
+Рекомендуемые теги для добавления в HEAD страницы:
+  <link rel="preload" as="image" fetchpriority="high" media="(max-width: 959px)" href="https://optim.tildacdn.com/stor6463-.../-/resize/400x400/-/format/webp/e35360f2...png.webp">
+  <link rel="preload" as="image" fetchpriority="high" media="(min-width: 960px)" href="https://optim.tildacdn.com/stor6463-.../-/cover/432x475/center/center/-/format/webp/e35360f2...png.webp">
 
 Как добавить в Tilda:
-  Настройки страницы → SEO → Дополнительный код HEAD → вставьте тег выше.
+  Настройки страницы → SEO → Дополнительный код HEAD → вставьте теги выше.
 
 URL >
 ```
@@ -217,8 +226,10 @@ tilda-vitals
   [2/96] /bukety                     ✓ уже настроено
   [3/96] /nedorogie-bukety           ✓ уже настроено
   [4/96] /suhocvety                  → обновляем...
-    → LCP-изображение: https://optim.tildacdn.com/stor3f2a.../-/resize/240x240/-/format/webp/roses.jpg.webp
-    → вставляем в HEAD: <link rel="preload" as="image" fetchpriority="high" href="https://optim.tildacdn.com/stor3f2a.../-/resize/240x240/-/format/webp/roses.jpg.webp">
+    → LCP мобильный:  https://optim.tildacdn.com/stor3f2a.../-/resize/400x400/-/format/webp/roses.jpg.webp
+    → LCP десктоп:    https://optim.tildacdn.com/stor3f2a.../-/cover/432x475/center/center/-/format/webp/roses.jpg.webp
+    → вставляем в HEAD: <link rel="preload" as="image" fetchpriority="high" media="(max-width: 959px)" href="https://optim.tildacdn.com/stor3f2a.../-/resize/400x400/-/format/webp/roses.jpg.webp">
+    → вставляем в HEAD: <link rel="preload" as="image" fetchpriority="high" media="(min-width: 960px)" href="https://optim.tildacdn.com/stor3f2a.../-/cover/432x475/center/center/-/format/webp/roses.jpg.webp">
     → публикуем... ✓
     ✓ обновлено
   ...
@@ -274,8 +285,9 @@ tilda-vitals login
 
 ## Как скрипт определяет LCP-изображение
 
-Скрипт открывает каждую страницу в браузере (мобильный viewport 390×844px) и измеряет LCP
-через стандартное браузерное API — `PerformanceObserver` с типом `largest-contentful-paint`:
+Скрипт открывает каждую страницу дважды — в мобильном (390×844px, dpr=2) и десктопном
+(1280×800px, dpr=1) viewport — и измеряет LCP через стандартное браузерное API —
+`PerformanceObserver` с типом `largest-contentful-paint`:
 
 ```javascript
 new PerformanceObserver(list => {
