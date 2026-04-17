@@ -40,6 +40,32 @@ def find_lcp_image(page, site_url: str, alias: str,
     return lcp_url if lcp_url else None
 
 
+def _fetch_image_preloads(url: str) -> list[str]:
+    """
+    Загружает HTML страницы с заголовком no-cache (обходит CDN-кеш)
+    и возвращает список href всех <link rel="preload" as="image"> тегов.
+    """
+    import re
+    import requests as _requests
+
+    try:
+        resp = _requests.get(
+            url,
+            headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
+            timeout=15,
+        )
+        hrefs = []
+        for tag in re.findall(r'<link\b[^>]+>', resp.text, re.IGNORECASE):
+            if ('rel="preload"' in tag or "rel='preload'" in tag) and \
+               ('as="image"' in tag or "as='image'" in tag):
+                m = re.search(r'\bhref=["\']([^"\']+)["\']', tag)
+                if m:
+                    hrefs.append(m.group(1))
+        return hrefs
+    except Exception:
+        return []
+
+
 def check_page_preload(page_mobile, url: str, page_desktop=None) -> dict:
     """
     Открывает публичную страницу, измеряет LCP через PerformanceObserver
@@ -58,6 +84,7 @@ def check_page_preload(page_mobile, url: str, page_desktop=None) -> dict:
     import re
     from .fixes import make_preload_tags
 
+    # ── LCP-замер через браузер (без no-cache — страница грузится с CDN-кешем быстро) ──
     page_mobile.set_viewport_size({"width": 390, "height": 844})
     page_mobile.goto(url, wait_until="networkidle")
     page_mobile.wait_for_timeout(1000)
@@ -75,12 +102,8 @@ def check_page_preload(page_mobile, url: str, page_desktop=None) -> dict:
 
     preload_tags = make_preload_tags(mobile_url, desktop_url)
 
-    # Собираем все preload as="image" теги на странице (проверяем по мобильной версии)
-    existing_preloads = page_mobile.evaluate(
-        "() => Array.from("
-        "  document.querySelectorAll('link[rel=\"preload\"][as=\"image\"]')"
-        ").map(el => el.getAttribute('href'))"
-    )
+    # ── Читаем существующие preload-теги из свежего HTML (no-cache через requests) ──
+    existing_preloads = _fetch_image_preloads(url)
 
     def url_path(u: str) -> str:
         """Возвращает путь URL без схемы и хоста для нормализованного сравнения."""
@@ -91,7 +114,7 @@ def check_page_preload(page_mobile, url: str, page_desktop=None) -> dict:
     # Ожидаемые href из сгенерированных preload-тегов
     expected_hrefs = re.findall(r'href="([^"]+)"', preload_tags)
     expected_paths = [url_path(h) for h in expected_hrefs]
-    existing_paths = [url_path(u) for u in (existing_preloads or [])]
+    existing_paths = [url_path(u) for u in existing_preloads]
 
     if expected_paths and all(p in existing_paths for p in expected_paths):
         status = "preload_ok"
@@ -107,7 +130,7 @@ def check_page_preload(page_mobile, url: str, page_desktop=None) -> dict:
         "lcp_url": mobile_url or desktop_url,  # для обратной совместимости
         "preload_tags": preload_tags,
         "preload_tag": preload_tags,  # для обратной совместимости
-        "existing_preloads": existing_preloads or [],
+        "existing_preloads": existing_preloads,
     }
 
 
