@@ -151,7 +151,7 @@ def _do_fix(cfg: Config, args, ctx, playwright_instance) -> None:
         b_desktop.close()
         sys.exit(1)
 
-    store_pages = [pg for pg in all_pages if pg.get("alias", "").strip("/")]
+    store_pages = [pg for pg in all_pages if pg.get("alias") is not None]
     print(f"({len(store_pages)} страниц)\n")
 
     # ── Фильтр по --page ──
@@ -159,7 +159,7 @@ def _do_fix(cfg: Config, args, ctx, playwright_instance) -> None:
         target = args.page.strip("/")
         store_pages = [pg for pg in store_pages if pg.get("alias", "").strip("/") == target]
         if not store_pages:
-            valid = [f'/{pg.get("alias","").strip("/")}' for pg in all_pages if pg.get("alias","").strip("/")]
+            valid = ["/" if not pg.get("alias","").strip("/") else f'/{pg.get("alias","").strip("/")}' for pg in all_pages if pg.get("alias") is not None]
             print(f"Страница {args.page!r} не найдена.")
             print("Доступные страницы:")
             for v in valid:
