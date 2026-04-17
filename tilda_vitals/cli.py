@@ -3,11 +3,13 @@
 tilda-vitals — утилита для улучшения LCP на сайтах Tilda.
 
 Использование:
-  tilda-vitals              # проверить, показать что нужно исправить
-  tilda-vitals --apply      # проверить и применить без подтверждения
-  tilda-vitals --page /alias  # обработать одну страницу
-  tilda-vitals login        # обновить сессию (войти заново)
-  tilda-vitals config       # изменить настройки
+  tilda-vitals                          # проверить и обновить все страницы
+  tilda-vitals --preview                # только показать что нужно исправить
+  tilda-vitals --page /alias            # обработать одну страницу
+  tilda-vitals --no-publish             # обновить HEAD, но не публиковать
+  tilda-vitals check [URL]              # проверить любой сайт (без настройки)
+  tilda-vitals login                    # обновить сессию (войти заново)
+  tilda-vitals config                   # изменить настройки
 """
 
 import argparse
